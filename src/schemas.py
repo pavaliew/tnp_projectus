@@ -1,209 +1,142 @@
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, EmailStr
 from models import MemberRole, ProjectStatus, TaskStatus, TaskPriority
 
 
 
-class Token(BaseModel):
-    """Схема для JWT токена."""
-    access_token: str
-    token_type: str
-
-
-
 class UserBase(BaseModel):
-    """Базовая схема для пользователя."""
-
-    username: str
-    email: str
-
-
-
-class UserCreate(UserBase):
-    """Схема для создания пользователя (принимает пароль)."""
-
-    password: str
-
-
-
-class UserRead(UserBase):
-    """Схема для чтения данных пользователя из БД."""
-
-    id: int
-    created_at: datetime
-
-    model_config = {
-        "from_attributes": True
-    }
+    username: str = Field(min_length=2, max_length=50)
+    email: EmailStr = Field(min_length=5, max_length=100)
 
 
 
 class ProjectBase(BaseModel):
-    """Базовая схема для проекта."""
-
-    name: str
-    description: Optional[str] = None
+    name: str = Field(min_length=2, max_length=100)
     status: ProjectStatus = ProjectStatus.ACTIVE
 
 
 
-class ProjectCreate(ProjectBase):
-    """Схема для создания проекта."""
-
-    pass
-
-
-
-class ProjectRead(ProjectBase):
-    """Схема для чтения данных проекта из БД."""
-
-    id: int
-    owner_id: int
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = {
-        "from_attributes": True
-    }
-
-
-
-class ProjectMemberBase(BaseModel):
-    """Базовая схема для участника проекта."""
-
-    role: MemberRole
-
-
-
-class ProjectMemberCreate(ProjectMemberBase):
-    """Схема для добавления участника в проект."""
-
-    user_id: int
-
-
-
-class ProjectMemberRead(ProjectMemberBase):
-    """Схема для чтения данных участника проекта."""
-
-    project_id: int
-    user_id: int
-    joined_at: datetime
-
-    model_config = {
-        "from_attributes": True
-    }
+class BoardBase(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
 
 
 
 class TaskBase(BaseModel):
-    """Базовая схема для задачи."""
-
-    title: str
-    description: Optional[str] = None
+    title: str = Field(min_length=2, max_length=100)
     status: TaskStatus = TaskStatus.TODO
     priority: TaskPriority = TaskPriority.MEDIUM
-    position: int = 0
-    deadline: Optional[datetime] = None
+
+
+
+class ProjectMemberBase(BaseModel):
+    role: MemberRole
+
+
+
+class UserCreate(UserBase):
+    password: str = Field(min_length=6, max_length=256)
+
+
+
+class ProjectCreate(ProjectBase):
+    pass
+
+
+
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=100)
+    status: Optional[ProjectStatus] = None
+
+
+
+class BoardCreate(BoardBase):
+    position: Optional[int]
+
+
+
+class BoardUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    position: Optional[int] = None
 
 
 
 class TaskCreate(TaskBase):
-    """Схема для создания задачи."""
-
     assignee_id: Optional[int] = None
-
-
-
-class TaskUpdate(TaskBase):
-    """Схема для частичного обновления задачи."""
-
-    title: Optional[str] = None
-    description: Optional[str] = None
-    status: Optional[TaskStatus] = None
-    priority: Optional[TaskPriority] = None
     position: Optional[int] = None
     deadline: Optional[datetime] = None
     assignee_id: Optional[int] = None
 
 
 
-class TaskRead(TaskBase):
-    """Схема для чтения данных задачи из БД."""
+class TaskUpdate(BaseModel):
+    title: Optional[str] = None
+    board_id: Optional[int] = None
+    status: Optional[TaskStatus] = None
+    priority: Optional[TaskPriority] = None
+    position: Optional[int] = None
+    deadline: Optional[datetime] = None
+    assignee_id: Optional[int] = None
+    
+class ProjectMemberCreate(ProjectMemberBase):
+    user_id: int
 
+
+
+class UserRead(UserBase):
     id: int
-    project_id: int
-    creator_id: int
-    assignee_id: Optional[int]
+    created_at: datetime
+    class Config: from_attributes = True
+
+
+
+class TaskRead(TaskBase):
+    id: int
+    board_id: int
     created_at: datetime
     updated_at: datetime
-
-    model_config = {
-        "from_attributes": True
-    }
-
-
-
-class ProjectMemberWithUser(ProjectMemberRead):
-    """Участник проекта с данными самого пользователя."""
-
-    user: UserRead
-
-
-
-class TaskWithAssignee(TaskRead):
-    """Задача с данными исполнителя."""
-
     assignee: Optional[UserRead] = None
+    position: int
+
+    class Config: from_attributes = True
 
 
 
-class ProjectWithDetails(ProjectRead):
-    """Проект с детальной информацией: участники и задачи."""
-
-    members: List[ProjectMemberWithUser]
-    tasks: List[TaskRead]
-
-
-
-class UserWithProjects(UserRead):
-    """Пользователь со списком его проектов."""
-
-    projects: List[ProjectRead]
-
-
-
-class CommentBase(BaseModel):
-    """Базовая схема для комментария."""
-    content: str
-
-
-
-class CommentCreate(CommentBase):
-    """Схема для создания комментария."""
-    pass
-
-
-
-class CommentRead(CommentBase):
-    """Схема для чтения комментария из БД."""
+class BoardRead(BoardBase):
     id: int
-    author_id: int
-    task_id: int
+    position: int
+    tasks: List[TaskRead] = []
+    class Config: from_attributes = True
+
+
+
+class ProjectMemberRead(ProjectMemberBase):
+    user: UserRead 
+    joined_at: datetime
+    class Config: from_attributes = True
+
+
+
+class ProjectRead(ProjectBase):
+    """Простая схема для списков проектов."""
+    id: int
     created_at: datetime
-    
-    model_config = {
-        "from_attributes": True
-    }
+    class Config: from_attributes = True
 
 
 
-class CommentReadWithAuthor(CommentRead):
-    """Схема для чтения комментария с данными автора."""
-    author: UserRead
+class ProjectReadWithDetails(ProjectRead):
+    """Полная схема для одного проекта с вложенными данными."""
+    members: List[ProjectMemberRead] = []
+    boards: List[BoardRead] = []
+    class Config: from_attributes = True
 
 
 
-class TaskReadWithDetails(TaskWithAssignee):
-    """Задача со всеми деталями: исполнитель и комментарии."""
-    comments: List[CommentReadWithAuthor] = []
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+

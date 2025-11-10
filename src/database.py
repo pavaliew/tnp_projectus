@@ -15,7 +15,6 @@ class Base(DeclarativeBase):
 async_engine = create_async_engine(settings.DATABASE_URL_ASYNC)
 async_session_maker = async_sessionmaker(
     async_engine,
-    echo=True, 
     expire_on_commit=False,
 )
 
